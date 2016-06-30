@@ -1,0 +1,10 @@
+message test {
+    repeated int32 a = 1 [packed = true];
+    required string b = 2;
+    required uint32 c = 3;
+    repeated tmp d = 4 [packed = true];
+}
+message tmp {
+    repeated float a = 1 [packed = true];
+    optional uint64 d = 2 [default = 1];
+}

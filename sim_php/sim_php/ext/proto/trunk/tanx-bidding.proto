@@ -1,0 +1,464 @@
+// Tanx <--> DSP接口
+// 字段详细说明请参见 API说明文档
+
+package Tanx;
+
+message BidRequest {
+
+    //------------------------------------------- 协议基础信息
+
+    // 当前协议版本号，目前为3
+    required int32 version = 1;
+
+    // Tanx生成的唯一的竞价ID，32字节的字符串
+    required string bid = 2;
+
+    // 如果不为0，那么这是一个测试请求。
+    // DSP需要返回一个正常填写的应答
+    // Tanx不会展现给用户，且不会对该次请求计费
+    optional uint32 is_test = 11 [default = 0];
+
+    // 如果不为0，那么这是一个ping请求
+    // DSP需要返回一个空的应答
+    optional uint32 is_ping = 12 [default = 0];
+
+    //------------------------------------------- 浏览者信息
+
+    // 用户身份标识
+    // 如果进行cookie托管，且hosted_match_data存在，则该值不会被设置
+    optional string tid = 3;
+
+    // 用户的IP地址， ipv4
+    // 例如：192.168.1.1
+    optional string ip = 4;
+
+    // 用户的浏览器类型，即HTTP请求头部的User-Agent
+    optional string user_agent = 5;
+
+    // 用户所处时区的分钟偏移量
+    // 例如：如果是东八区，则 timezone_offset = 60 * 8 = 480.
+    optional int32 timezone_offset = 13;
+
+    // 用户垂直类别
+    // 预留字段，暂无实际值
+    repeated int32 user_vertical = 14;
+
+    // tid 字段的版本号
+    optional uint32 tid_version = 19;
+
+    //------------------------------------------- 网页信息
+
+    // 媒体禁止的目标跳转url
+    // 所有条目的总长度不超过200个字符
+    // 该字段可能不是全量数据，
+    // 建议使用离线数据获取媒体设置的全量数据
+    repeated string excluded_click_through_url = 6;
+
+    // 推广位所在的页面url
+    optional string url = 7;
+
+    // 推广位所在网站的分类
+    // 参见数据字典 Tanx-dict-site-category.txt
+    optional uint32 category = 8;
+
+    // 流量所属来源，预留字段，目前为0
+    // adx type 0表示SSP流量， 1表示google流量
+    optional uint32 adx_type = 9 [default = 0];
+
+    // 预留字段，暂无实际值
+    optional string anonymous_id = 15;
+
+    // 预留字段，暂无实际值
+    optional string detected_language = 16;
+
+    // category 字段版本号，目前为1
+    optional int32 category_version = 18;
+
+    //------------------------------------------- 推广位基础信息
+    message AdzInfo {
+        // 推广位编号，目前固定为0
+        required uint32 id = 1; 
+
+        // 推广位的唯一标识
+        required string pid = 2; 
+        
+        // 网站的唯一标识
+        optional string publisher_id = 11; 
+
+        // 推广位的尺寸: 宽 x 高
+        // 例如：300x250
+        optional string size = 3;
+
+        // 推广位希望从单个DSP获取的竞价广告数量
+        // DSP可以提供小于等于此值的广告个数（只会有一个广告胜出）
+        // 多于AdzInfo.ad_bid_count数值的广告，将被截断而不参与竞价
+        optional uint32 ad_bid_count = 4 [default = 2];
+
+        // 推广位的展现形式
+        // 参见数据字典 Tanx-dict-view-type.txt
+        // 页面选流量使用
+        // 11表示视频贴片、12表示视频暂停页、106 无线贴片、107 无线暂停页
+        repeated uint32 view_type = 5;
+
+        // 媒体禁止的创意类型
+        // 参见数据字典 Tanx-dict-creative-type.txt
+        // 该字段可能不是全量数据，
+        // 建议使用离线数据获取媒体设置的全量数据
+        repeated uint32 excluded_filter = 6;
+
+        // 最低竞标价格，货币单位为人民币，数值含义为分/千次展现
+        optional uint32 min_cpm_price = 7;
+
+        // 已经废弃，请忽略
+        enum Location {
+            NA = 0;
+            FIRST_VIEW = 1;
+            OTHER_VIEW = 2;
+        }
+        optional Location adz_location = 8 [default = NA];
+
+        // 推广位在页面所在的屏数
+        // 0: 未识别; 1-5: 第1-5屏; 6: 第六屏及以外
+        enum ViewScreen {
+            SCREEN_NA     = 0;
+            SCREEN_FIRST  = 1;
+            SCREEN_SECOND = 2;
+            SCREEN_THIRD  = 3;
+            SCREEN_FOURTH = 4;
+            SCREEN_FIFTH  = 5;
+            SCREEN_OTHER  = 6;
+        }
+        optional ViewScreen view_screen = 9 [default = SCREEN_NA];
+
+        // 推广位在整个页面的渲染顺序，从0开始递增
+        optional uint32 page_session_ad_idx = 10;
+    }
+    repeated AdzInfo adzinfo = 10;
+
+    // 媒体禁止的敏感类目
+    // 参见数据字典 Tanx-dict-sensitive-category.txt
+    // 该字段可能不是全量数据，
+    // 建议使用离线数据获取媒体设置的全量数据
+    repeated int32 excluded_sensitive_category = 17;
+
+    // 媒体禁止的广告行业类目
+    // 参见数据字典 Tanx-dict-ad-category-version-2.xlsx
+    // 该字段可能不是全量数据，
+    // 建议使用离线数据获取媒体设置的全量数据
+    repeated int32 excluded_ad_category = 20;
+
+    // DSP进行Cookie托管的用户标识id
+    // 对应cookie mapping里的tanx_hm输入参数
+    // 如果hosted_match_data存在，则不设置tid
+    optional string hosted_match_data = 21;
+
+    // DSP进行Cookie托管的用户属性
+    // 对应cookie mapping里的tanx_ua参数
+    message UserAttribute {
+        // DSP进行Cookie托管的用户属性id
+        required uint32 id = 1;
+
+        // DSP进行Cookie托管的用户属性id所对应的时间戳
+        optional uint32 timestamp = 2;
+    }
+    repeated  UserAttribute user_attribute = 22;
+
+    // 标识一个页面pv
+    // 对于同一个页面的单个PV，Tanx会生成一个相同且唯一的page_session_id
+    optional string page_session_id = 23;
+
+    // 预留字段，暂无实际值
+    message PrivateInfo {
+        optional string tanx_cnaui = 1;
+        optional string risk_control = 2;
+    }
+    repeated PrivateInfo private_info = 24;
+
+    //------------------------------------------- 无线推广位其他信息
+    message Mobile {
+        // 标识该次广告请求是否来自APP应用
+        optional bool is_app = 1;
+
+        // 需要展示的创意数量
+        // 仅对于AdzInfo.view_type为无线墙时，本字段有效
+        optional uint32 ad_num = 2;
+
+        // 关键词，预留字段，暂无实际值
+        repeated string ad_keyword = 3;
+
+        // 推广位是否全屏展示
+        optional bool is_fullscreen = 4;
+
+        // 推广位所在的应用包名
+        // 例如：com.moji.MojiWeather
+        optional string package_name = 5;
+
+        message Device {
+            // 设备平台(小写)
+            // 例如：android, iphone, ipad
+            optional string platform = 1;
+
+            // 设备品牌(小写)
+            // 例如：nokia, samsung.
+            optional string brand = 2;
+
+            // 设备型号(小写)
+            // 例如：n70, galaxy.
+            optional string model = 3;
+
+            // 操作系统(小写)
+            // 例如：android, ios
+            optional string os = 4;
+
+            // 操作系统版本
+            // 例如：7.0.2
+            optional string os_version = 5;
+
+            // 设备所处网络环境
+            // 0-未识别, 1-wifi, 2-2g, 3-3g, 4-4g
+            optional uint32 network = 6;
+
+            // 设备的网络运营商
+            // 0-未知, 1-移动, 2-联通, 3-电信
+            optional int32 operator = 7;
+
+            // 设备所在地理位置的经度（小数点格式）
+            // 例如：116.41667
+            optional string longitude = 8;
+
+            // 设备所在地理位置的纬度（小数点格式）
+            // 例如：39.91667
+            optional string latitude = 9;
+
+            // 设备的屏幕分辨率
+            // 例如：1024x768
+            optional string device_size = 10;
+
+            // 设备ID号
+            // 对于IOS(7.0)设备，该值为系统的idfa号进行MD5编码后的值
+            // 对于IOS(7.0以下)设备，该值为空（可参考操作系统os字段）
+            // 对于android设备，该值为系统的imei号进行MD5编码后的值
+            optional string device_id = 11;
+            
+            // 
+            optional int32 device_pixel_ratio = 12 [default=1000];
+        }
+        optional Device device = 6;
+    }
+    // 若本字段被设置，则本次请求，来自移动设备。
+    optional Mobile mobile = 25;
+
+    // 基于推广位所在页面内容的分类信息
+    message ContentCategory {
+        // 基于推广位所在页面内容的网页类目ID
+        // 参见数据字典 Tanx-dict-content-category.xlsx
+        required  int32  id = 1;
+
+        // 对应网页类目ID的置信分数。取值范围[0,1000]
+        required  int32  confidence_level = 2;
+    }
+    repeated ContentCategory content_categories = 26;
+    
+    message Video {
+        //请求所允许的视频格式
+        enum VideoFormat {
+            //HTML5 VAST创意包括mp4和webm媒体
+            VIDEO_FLASH = 0;
+            VIDEO_HTML5 = 1;
+        }
+        repeated VideoFormat video_format = 1;
+
+        // 视频所在页面描述信息
+        // key字段说明详见字典文件
+        // 统一为string utf-8，tanx保证
+        message Content {
+            optional string title = 1;
+            //视频时长，单位秒
+            optional int32 duration = 2;
+            repeated string keywords = 3;
+        }
+        optional Content content = 2; 
+
+        // 贴片位置相对于所在视频的起始时间，0 表示前贴片 and -1 表示后贴片，大于0的值表示中插
+        optional int32 videoad_start_delay = 3;
+
+        //上述位置可能包含多个贴片，表示本贴片在上述集合中相对起始位置，单位毫秒
+        optional int32 videoad_section_start_delay = 4;
+
+        //贴片最小播放时间长度,视频创意播放时间不可小于该值，单位毫秒
+        optional int32 min_ad_duration = 5;
+
+        //贴片最大播放时间长度，单位毫秒
+        optional int32 max_ad_duration = 6;
+
+        // Vast协议版本号.
+        // 本期使用3.0版本，向下兼容
+        optional string protocol = 7;
+    }
+    optional Video video = 27;//视频参数
+
+    //阿里id，tcifid
+    optional string aid = 28;
+}
+
+
+message BidResponse {
+
+    //------------------------------------------- 协议基础信息
+
+    // 当前协议版本号，目前为3
+    required int32 version = 1;
+
+    // 请填充BidRequest中的bid, 32字节的字符串
+    required string bid = 2;
+
+    //------------------------------------------- 广告信息
+
+    // 广告定义
+    // 若DSP不对本次请求报价，则不要设置本字段
+    message Ads {
+        // 标记该广告对应的推广位的编号，目前请填充0
+        required uint32 adzinfo_id = 1;
+
+        // 广告竞标价格（人民币），单位为分/千次展现
+        // 该字段值不允许为0
+        // 且不能低于推广位最低竞标价格（BidRequest.min_cpm_price）
+        required uint32 max_cpm_price = 2;
+
+        // 当前广告在对应推广位上的下标值
+        // 该值严格从0递增，并且必须小于BidRequest.AdzInfo.ad_bid_count
+        optional uint32 ad_bid_count_idx = 3;
+
+        // 广告代码片段
+        // 详细用法请参见API文档
+        optional string html_snippet = 4;
+
+        // 广告的点击地址
+        // 需要http://或者https://开头
+        repeated string click_through_url = 5;
+
+        // DSP声明的本广告所属的广告行业类目和敏感类目
+        // 参见数据字典 Tanx-dict-ad-category.txt 和 Tanx-dict-sensitive-category.txt
+        repeated int32 category = 6;
+
+        // DSP声明的广告创意类型
+        // 参见数据字典 Tanx-dict-creative-type.txt
+        // 对于贴片创意，此处必须为4 视频
+        repeated int32 creative_type = 7;
+
+        // DSP自定义数据
+        // 本字段即将废弃
+        // 只能包含[_0-9a-zA-Z]，长度不超过128
+        optional string network_guid = 8;
+
+        // 本字段已经废弃
+        optional string extend_data = 9;
+
+        // 广告跳转的最终目标页面地址
+        // 必须以http://或者https://开头.
+        repeated string destination_url = 10;
+
+        // 广告创意ID
+        // 长度不超过64字节，且不能包含空格/回车/换行和其他不可见字符
+        // 对于视频贴片，此处放托管的创意id，不可为空
+        optional string creative_id = 11;
+
+        // 素材资源地址
+        // 本字段仅适用于来自移动设备的竞价请求
+        optional string resource_address = 12;
+
+        // 广告展示时的反馈地址
+        // 本字段仅适用于移动设备上view_type是无线墙的竞价请求
+        optional string feedback_address = 13;
+        
+        // 视频代码片段
+        // 暂停页跟踪
+        optional string video_snippet = 14;
+    }
+    repeated Ads ads = 3;
+}
+
+// BidResult消息已废弃，请忽略
+message BidResult {
+
+    //------------------------------------------- 协议基础信息
+
+    // 当前协议版本号，目前为3
+    required int32 version = 1;
+
+    // 对应BidRequest.bid字段
+    required string bid = 2;
+
+    //------------------------------------------- 竞价结果信息
+
+    message Res {
+        // 竞价成功的广告所对应的推广位编号，目前为0
+        required uint32 adzinfo_id = 1;
+
+        // 竞价成功的广告在对应推广位上的下标值
+        optional uint32 ad_bid_count_idx = 2;
+
+        // 该字段已废弃
+        optional int32 result_code = 3 [default = 0];
+
+        // 竞价成功的广告的结算价格
+        optional uint32 result_price = 4;
+
+        // DSP自定义的数据
+        // 为对应的BidResponse消息中的Ads.extend_data字段值
+        optional string extend_data = 5;
+    }
+    repeated Res res = 3;
+}
+
+// 该接口仅适用于移动设备上view_type是无线墙的竞价请求
+message MobileCreative {
+    // 当前协议版本号，目前为3
+    required int32 version = 1;
+
+    // 竞价过程中生成的唯一竞价ID
+    required string bid = 2;
+
+    // 预留字段，请暂时忽略
+    optional uint32 view_type = 3;
+
+    message Creative {
+        // 图片地址，暂不支持gif
+        optional string img_url = 1;
+
+        // 图片尺寸，格式为：宽x高
+        // 例如：320x50
+        optional string img_size = 2;
+
+        // 创意说明
+        // utf-8编码，编码后长度不超过50个字符
+        optional string title = 3;
+
+        // 点击地址
+        optional string click_url = 4;
+
+        // 创意的最终目标地址
+        // 必须以http://或者https://开头
+        optional string destination_url = 5;
+
+        // 属性（描述）信息
+        message Attr{
+            // 属性名
+            // 参见数据字典 Tanx-dict-mobile-creative-attr.xlsx
+            required string name = 1;
+
+            // 属性值
+            required string value = 2;
+        }
+        repeated Attr attr = 6;
+        
+        // 由DSP设置的创意ID
+        // 长度不能超过64位
+        // 且不能包含空格/回车/换行和其他不可见字符
+        optional string creative_id = 7;
+
+        // 预留字段，请暂时忽略
+        repeated int32 category = 8;
+    }
+    repeated Creative creatives = 4;
+}

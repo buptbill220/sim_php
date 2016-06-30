@@ -1,0 +1,10 @@
+// See README.txt for information and build instructions.
+
+package cookie;
+
+message CookieCver{
+	required string aCookie = 1;
+	required uint32 gcCver = 2;
+}
+
+

@@ -1,0 +1,190 @@
+// tweb模块和xengine数据接口
+
+package TwebXeng;
+
+message Request {
+
+	message AdzInfo {
+        // id: 页面的广告位编号，从0开始递增
+        // 在返回的时候我们会根据这个字段匹配广告
+		required uint32 id = 1; 
+
+        // tanx系统分配广告位的唯一标识
+        // 为当前广告位的pid(阿里内部)，如流量提供方为非阿里系，则此pid为流量提供方在阿里系的虚拟pid
+		required string pid = 2; 
+
+        // 广告位的尺寸: widthxheight e.g.200x300
+		optional string size = 3;
+
+        // 展现形式     
+        // 1 页面固定广告位、2 弹窗广告位、3 页面漂浮广告位
+		optional uint32 view_type = 4; 
+
+        // 流量最低竞标价格, DSP出价需要不小于这个值, 单位为分, 只支持人民币
+		optional uint32 min_cpm_price = 5;
+
+
+        // 扩充的广告位相对位置       
+        // 0: 无数据; 1-5: 第1-5屏; 6: 第六屏及以外
+		enum ViewScreen {
+			SCREEN_NA     = 0;
+			SCREEN_FIRST  = 1;
+			SCREEN_SECOND = 2;
+			SCREEN_THIRD  = 3;
+			SCREEN_FOURTH = 4;
+			SCREEN_FIFTH  = 5;
+			SCREEN_OTHER  = 6;
+		}
+		optional ViewScreen view_screen = 6 [default = SCREEN_NA];
+
+        //同一个pvid的不同广告渲染顺序，从0开始
+        //或者说是不同广告位的请求顺序
+        optional uint32 ai = 7;
+
+	}
+	repeated AdzInfo adzinfo = 1;
+
+	message UserInfo {
+        //浏览者acookie信息
+        optional string acookie = 1;
+
+        //浏览者tcmCookie信息
+        optional string tcm_cookie = 2;
+
+        //浏览者的id(淘宝uid)，从cookie获取
+        optional string cnaui_cookie = 3;
+
+        //浏览者ip信息
+        optional string ip = 4;
+
+        //浏览者浏览器信息
+        optional string agent = 5;
+    }
+    optional UserInfo userinfo = 2;
+
+    // 广告位所属网站行业类目
+    optional uint32 category = 3;
+
+     // 广告位所在url    
+    optional string url = 4;
+
+    //pvid，传递给dsp做页面去重，
+    //同一个页面的不同广告位，对于同一个pv该值相同
+    optional string pvid = 5;
+    message Video {
+        //待修订
+        enum VideoFormat {
+            //请求所允许的视频格式
+            VIDEO_FLASH = 0;
+            /*Valid HTML5 VAST ads contain both mp4 and webm media, files in the first Ad/Creative VAST node.*/
+            VIDEO_HTML5 = 1;  
+        }
+        repeated VideoFormat video_format = 1;
+
+        //视频所在页面描述信息,utf-8编码
+        message Content {
+            optional string title = 1;
+            //视频时长，单位秒
+            optional int32 duration = 2;
+            repeated string keywords = 3;
+        }
+        optional Content content = 2;
+
+        //贴片(集合)位置相对于所在视频的起始时间，0 表示前贴片 and -1表示后贴片，大于0的值表示中插，单位毫秒
+        optional int32 videoad_start_delay = 3;
+        //上述位置可能包含多个贴片，表示本贴片在上述集合中相对起始位置，单位毫秒
+        optional int32 videoad_section_start_delay = 4;
+
+        //贴片最小播放时间长度,视频创意播放时间不可小于该值
+        optional int32 min_ad_duration = 5;
+        //贴片最大播放时间长度
+        optional int32 max_ad_duration = 6;
+
+        //Vast协议版本号： 
+        //本期使用3.0版本，向下兼容
+        optional string protocol = 7;
+    }
+    optional Video video =6;//视频参数
+    //流量标记，0:ssp流量; 1:dsp流量
+    optional uint32 traffic_mark = 7;
+
+    message ContentCategory {
+        // 基于推广位所在页面内容的网页类目ID
+        // 参见数据字典 Tanx-dict-content-category.xlsx
+        required  int32  id = 1;
+
+        // 对应网页类目ID的置信分数。取值范围[0,1000]
+        required  int32 confidence_level = 2;
+    }
+    repeated ContentCategory content_categories = 8;
+}
+
+
+message Response {
+    //------------------------------------------- 协议基础信息
+
+    // 处理状态：0:成功;1:格式错误;2:内部错误
+    enum Status {
+        OK = 0;
+        FMT_ERR = 1;
+        INNER_ERR = 2;
+    }
+	required Status status = 1;
+
+    // 处理路径，格式：p100-cms20-ima3
+	optional string path = 2;
+
+    // bid, 32字节的字符串
+	optional string bid = 3;
+
+	//------------------------------------------- 广告信息
+
+    // 广告定义
+	message Ads {
+        // 千次展现金额,单位为分
+	    required uint32 price = 1;
+
+		// 广告代码片段(aloc)
+		optional string display_url = 2;
+
+        // 广告的目标跳转地址 
+        // 需要http://或者https://协议头
+		repeated string click_url = 3;
+
+        // 广告行业敏感类目和行业类目 
+        // 填充返回广告所属的敏感类目id和广告类目id
+        // 如果返回的广告属于敏感类目，请按照数据字典中(敏感类别.txt)的敏感类别id进行填充 
+        // 如果返回的广告属于某些广告行业类目，请按照数据字典中(广告类别.txt)的类别id进行填充 
+        // Tanx会验证此字段是否与BidRequest中的excluded_sensitive_category字段和excluded_ad_category字段有交集.
+		repeated int32 category = 4;
+
+		// 广告创意类型         
+        // 参见数据字典 Tanx字典文件-广告创意类型.txt 定义 
+        // 1 文字 2 图片 3 Flash 4 视频 5 文字链 6 图文(iframe方式引用) 7 JS广告牌 8 HTML广告 9 Flash不遮盖(动态Flash)
+		repeated int32 creative_type = 5;
+
+        // network自定义id           
+        // only in [_0-9a-zA-Z] 
+        // max_length: 128
+		optional string network_guid = 6;
+
+        // 为广告的目标页面的url地址 
+        // 并且必须以http://或者https://开头. 
+        // destination_url必须是不经过任何加密或者跳转的最终目标地址
+		repeated string destination_url = 7;
+
+        //点击宏类型，1: click点击宏; 2: trd点击宏; 3：trd点击优化：需要urlencode最终结果; 4: trd点击优化：不需要urlencode最终结果
+		optional int32 click_macro_type = 8;
+        //创意id用于tweb记录外部dsp创意审核日志        
+		optional string creative_id = 9;
+        //视频类型广告代码片段
+		optional string video_snippet = 10;
+        //外部创意id,以DSP方式接入时，外部交换平台托管的创意ID
+		optional string outer_creative_id = 11;
+	}
+	repeated Ads ads = 4;
+
+    // nid, 32字节的字符串
+	optional string network_id = 5;
+}
+

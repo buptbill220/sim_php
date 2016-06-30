@@ -1,0 +1,130 @@
+// This file is derived from the OpenRTB specification.
+
+//package ads_serving.proto;
+
+message Video {
+    // The iqiyi-internal unique identifier of an ad zone.
+    optional int64 ad_zone_id = 1;
+
+    // Indicates whether the ad impression is linear or non-linear.
+    // 1. Linear, example: pre-roll, mid-roll and post-roll.
+    // 2. Non-linear, example: overlay, video link, pause, and tool bar.
+    optional int32 linearity = 3;
+
+    // Minimum video ad duration in seconds.
+    optional int32 minduration = 4;
+
+    // Maximum video ad duration in seconds.
+    optional int32 maxduration = 5;
+
+    // Video bid response protocols.
+    // 1 VAST 1.0
+    // 2 VAST 2.0
+    // 3 VAST 3.0
+    // 4 VAST 1.0 Wrapper
+    // 5 VAST 2.0 Wrapper
+    // 6 VAST 3.0 Wrapper
+    optional int32 protocol = 6;
+
+    // Width of the player in pixels.
+    optional int32 w = 7 [default = 880];
+
+    // Height of the player in pixels.
+    optional int32 h = 8 [default = 495];
+
+    // Indicates the start delay in seconds for preroll, midroll,
+    // or postroll ad placement.
+    // 0 Pre-roll
+    // -1 Generic mid-roll
+    // -2 Generic Post-roll
+    optional int32 startdelay = 9;
+}
+
+message Impression {
+    // The unique identifier of this impression within the context of the bid
+    // request.
+    optional string id = 1;
+
+    optional Video video = 3;
+
+    // Bid floor for this impression.
+    optional int32 bidfloor = 4 [default = 0];
+}
+
+message Site {
+    // The iqiyi-internal unique identifier of a site.
+    optional uint32 id = 1;
+
+    optional Content content = 11;
+}
+
+message Content {
+    optional string title = 3;
+
+    // Original URL of the content, for buy-side contextualization or review.
+    optional string url = 6;
+
+    // The list of keywords describing the content.
+    repeated string keyword = 9;
+
+    // The duration of video content in seconds.
+    optional int32 len = 16;
+
+    // The iqiyi-internal unique identifier of an album.
+    optional int64 album_id = 20;
+
+    repeated int64 channel_id = 21 [packed = true];
+}
+
+message Device {
+    // Browser user agent string.
+    optional string ua = 2;
+
+    // IPv4 address closest to device.
+    optional string ip = 3;
+
+    // Geography as derived from the device's location services
+    // (e.g., cell tower triangulation, GPS) or IP address.
+    optional Geo geo = 4;
+
+    // The iqiyi-internal unique identifier of a platform.
+    optional int32 platform_id = 18;
+}
+
+message Geo {
+    optional int32 country = 3;
+    optional int32 metro = 5;
+    optional int32 city = 6;
+}
+
+message User {
+    // The unique identifier of this user on the exchange.
+    optional string id = 1;
+
+    optional Geo geo = 5;
+}
+
+message BidRequest {
+    // The unique identifier of this bid request, provided by the exchange.
+    optional string id = 1;
+
+    optional User user = 2;
+    optional Site site = 3;
+    optional Device device = 5;
+
+    // The list of impression objects. Multiple impression auctions may be
+    // specified in a single bid request. At least one impression is required
+    // for a valid bid request.
+    repeated Impression imp = 8;
+
+    // If true, then this is a test request. Results will not be displayed to
+    // users and DSP will not be billed for a response even if it wins the
+    // auction. DSP should still do regular processing since the request may be
+    // used to evaluate latencies or for other testing.
+    optional bool is_test = 9 [default = false];
+
+    // If true, then this request is intended to measure network latency. Please
+    // return an empty BidResponse with only processing_time_ms set as quickly as
+    // possible without executing any bidding logic.
+    optional bool is_ping = 10 [default = false];
+}
